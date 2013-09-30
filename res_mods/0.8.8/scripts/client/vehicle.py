@@ -141,6 +141,7 @@ class Vehicle(BigWorld.Entity):
                     maxHitEffectCode = hitEffectCode
                     if not hasPiercedHit:
                         hasPiercedHit = maxHitEffectCode >= VEHICLE_HIT_EFFECT.ARMOR_PIERCED
+                    #LOG_NOTE("Code:", hitEffectCode)
                     stages, effects, _ = effectsDescr[self.__hitEffectCodeToEffectGroup[hitEffectCode]]
                     hitTester = getattr(descr, compName)['hitTester']
                     hitTestRes = hitTester.localHitTest(startPoint, endPoint)
@@ -286,12 +287,29 @@ class Vehicle(BigWorld.Entity):
                     try:
                         attacker = p.arena.vehicles.get(attackerID)
                         if p.team != attacker["team"]:
+                            def getShellPrice(nationID, shellID):
+                                import ResMgr, nations
+                                from items import _xml, vehicles
+                                from constants import ITEM_DEFS_PATH
+
+                                price = {}
+                                xmlPath = ITEM_DEFS_PATH + 'vehicles/' + nations.NAMES[nationID] + '/components/shells.xml'
+                                for name, subsection in ResMgr.openSection(xmlPath).items():
+                                    if name != 'icons':
+                                        xmlCtx = (None, xmlPath + '/' + name)
+                                        if _xml.readInt(xmlCtx, subsection, 'id', 0, 65535) == shellID:
+                                            price = _xml.readPrice(xmlCtx, subsection, 'price')
+                                            break
+                                ResMgr.purge(xmlPath, True)
+
+                                return price
+
                             if self.__damageCfg["debug"] == True:
                                 LOG_NOTE("Hit:", attacker["vehicleType"].__dict__)
+                                LOG_NOTE("Hit:", attacker["vehicleType"].type.__dict__)
 
-                                for item in attacker["vehicleType"].optionalDevices:
-                                    if item is not None:
-                                        LOG_NOTE("Equipment:", item.name)
+                                LOG_NOTE(vehicles.g_cache.shells(attacker["vehicleType"].type.id[0]))
+                                LOG_NOTE(getShellPrice(attacker["vehicleType"].shot["shell"]["id"][0], attacker["vehicleType"].shot["shell"]["id"][1]))
 
                             if self.__damageCfg["hit_message"]["enabled"] == True and attackReasonID == 0:
                                 # Setup Message
